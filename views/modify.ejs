@@ -3,11 +3,11 @@
   <div id="contents">
     <h2 class="title"><%= title %></h2>
 
-    <form action="/register" method="POST" id="join" class="formBox">
+    <form action="/modify" method="POST" id="join" class="formBox">
       <div class="inputBox">
         <label>
           <span class="label">ID</span>
-          <input type="text" id="userID" name="userID" placeholder="ID를 입력하세요" />
+          <input type="text" id="userID" name="userID" value="<%= userInfo.userID %>" readonly />
           <button id="btnIdCheck">아이디 중복확인</button>
         </label>
       </div>
@@ -63,7 +63,7 @@
         </label>
       </div>
       <div class="btns">
-        <button type="submit" data-value="10" id="btnJoin">회원가입</button>
+        <button type="submit" data-value="10" id="btnJoin">회원정보 수정</button>
         <button type="reset">취소</button>
       </div>
     </form>
@@ -103,35 +103,6 @@
   //   });
   // });
 
-  $("#btnIdCheck").on("click", () => {
-    $.ajax({
-      url: "/idCheck",
-      method: "POST",
-      data: {
-        userID: $("#userID").val(),
-      },
-    }).done((response) => {
-      //console.log(response);
-      if (response.isOK) {
-        const result = confirm("쓸 수 있는 아이디 입니다.");
-        if (result) {
-          $("#userID").attr("readonly", true);
-          isIdChecked = true;
-        } else {
-          $("#userID").focus();
-          $("#userID").val("");
-          isIdChecked = false;
-        }
-      } else {
-        alert("쓸 수 없는 아이디 입니다.");
-        $("#userID").focus();
-        s;
-        $("#userID").val("");
-      }
-    });
-    return false;
-  });
-
   $("#btnJoin").on("click", () => {
     if ($("#userID").val().trim().length < 8) {
       alert("아이디는 최소 8자 이상이어야합니다.");
@@ -139,10 +110,6 @@
       return false;
     } else if (isIdChecked === false) {
       alert("ID 중복체크를 해주세요.");
-      return false;
-    } else if ($("#userPW").val().trim().length < 8) {
-      alert("패스워드는 최소 8자 이상이어야합니다.");
-      $("#userPW").focus();
       return false;
     } else if ($("#userName").val().trim().length < 3) {
       alert("이름는 최소 3자 이상이어야합니다.");

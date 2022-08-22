@@ -7,16 +7,24 @@ const path = require("path");
 const passport = require("passport");
 const LocalStrategy = require("passport-local").Strategy;
 const session = require("express-session");
+const { copyFileSync } = require("fs");
 const { serialize } = require("v8");
 
-app.use(session({ secret: "비밀코드는아무거나", resave: true, saveUninitialized: false }));
+app.use(
+  session({
+    secret: "비밀코드는아무거나",
+    resave: true, // 강제로 재 저장하겠느냐....
+    saveUninitialized: false, // 빈값을 저장하겠느냐
+    cookie: { maxAge: 1000 * 60 * 60 }, // milli second로 시간 설정
+  })
+);
 app.use(passport.initialize());
 app.use(passport.session());
 
 passport.use(
   new LocalStrategy(
     {
-      usernameField: "userID",
+      usernameField: "userID", // 속성중에 name속성으로 찾아서쓰면 된다. id랑 전혀 관계 없다.
       passwordField: "userPW",
       session: true,
       passReqToCallback: false,
@@ -44,13 +52,15 @@ passport.use(
   )
 );
 
+// 직렬화
 passport.serializeUser((user, done) => {
-  console.log("serializeUser===", user);
+  //console.log("serializeUser===", user);
   done(null, user.userID);
 });
+
+// 직렬화
 passport.deserializeUser((id, done) => {
   db.collection("member").findOne({ userID: id }, (err, result) => {
-    console.log(result);
     done(null, result);
   });
 });
@@ -82,21 +92,73 @@ app.get("/register", (req, res) => {
 app.get("/login", (req, res) => {
   res.render("login", { title: "login" });
 });
-app.get(
-  "/mypage",
-  (req, res, next) => {
-    console.log("mypage middle ware");
-    if (req.user) {
-      next();
-    } else {
-      res.send(`<script>alert("로그인 먼저 하셔야합니다."); location.href="/login";</script>`);
-    }
-  },
-  (req, res) => {
-    console.log(req.user);
-    res.render("mypage", { title: "mypage", userInfo: req.user });
+app.get("/logout", (req, res) => {
+  if (req.user) {
+    req.session.destroy();
+    //res.redirect("/");
+    res.send(`<script>alert("로그아웃되었습니다."); location.href="/"</script>`);
   }
-);
+});
+
+app.get("/delete", (req, res) => {
+  res.render("delete", { title: "Member Delete" });
+});
+app.post("/delete", (req, res) => {
+  console.log(req.user.userID);
+  const userPW = req.body.userPW;
+  db.collection("member").deleteOne({ userID: req.user.userID, userPW: userPW }, (err, result) => {
+    console.log(result);
+    if (result.deletedCount > 0) {
+      res.send(`<script>alert("회원탈퇴 되었습니다.");location.href="/"</script>`);
+    } else {
+      res.send(`<script>alert("비밀번호 확인해주세요.");location.href="/delete";</script>`);
+    }
+  });
+});
+
+app.get("/mypage", isLogged, (req, res) => {
+  //console.log(req.user);
+  res.render("mypage", { title: "mypage", userInfo: req.user });
+});
+
+app.get("/modify", isLogged, (req, res) => {
+  //console.log(req.user);
+  res.render("modify", { title: "modify", userInfo: req.user });
+});
+app.post("/modify", (req, res) => {
+  // join 이랑 똑같은 로직을 탄다.
+  // 대신 insertOne updateOne을 쓴다.
+  // 이떄 패스워드가 같아야지만 update를 해준다.
+  const userID = req.body.userID;
+  const userPW = req.body.userPW;
+  const userName = req.body.userName;
+  const userEmail = req.body.userEmail;
+  const userZipcode = req.body.userZipcode;
+  const userAddress = req.body.address01 + "/" + req.body.address02;
+  const userGender = req.body.gender;
+  const userJob = req.body.job;
+  db.collection("member").updateOne(
+    { userID: userID },
+    { $set: { userPW: userPW, userName: userName, userEmail: userEmail, userZipcode: userZipcode, userAddress: userAddress, userGender: userGender, userJob: userJob } },
+    (err, result) => {
+      if (err) {
+        console.log(err);
+      }
+      console.log(result);
+      res.send(`<script>alert("회원정보 수정이 되었습니다.");location.href="/";</script>`);
+    }
+  );
+});
+
+// 미들웨어 얘는 마지막에 무조건 next 있어야 함.
+function isLogged(req, res, next) {
+  if (req.user) {
+    next(); // next()안적으면 다음 단계로 못들어감...
+  } else {
+    res.send(`<script>alert("로그인 먼저 하세요."); location.href="/login"</script>`);
+  }
+}
+
 /*
 app.post("/login", (req, res) => {
   console.log(req);
@@ -111,7 +173,7 @@ app.post("/login", (req, res) => {
       //res.send(userID + "===" + userPW);
       res.redirect("/");
     } else {
-      res.send(`<script>alert("아이디 비밀번호 확인해주세요.");history.back();</>`);
+      res.send(`<script>alert("아이디 비밀번호 확인해주세요.");history.back();</script>`);
     }
   });
   //res.render("login");
@@ -181,9 +243,9 @@ app.post("/idCheck", (req, res) => {
   db.collection("member").findOne({ userID: userID }, (err, result) => {
     //console.log(result);
     if (result === null) {
-      res.json({ isOK: true });
+      res.json({ isOk: true });
     } else {
-      res.json({ isOK: false });
+      res.json({ isOk: false });
     }
   });
 });

@@ -62,7 +62,7 @@ a {
   height: 50px;
   border: 1px solid #ccc;
   border-radius: 10px;
-  padding: 5px;
+  padding: 5px 10px;
 }
 .formBox .inputBox label button {
   height: 50px;
@@ -83,12 +83,19 @@ a {
 .formBox .inputBox label #userJob {
   width: 200px;
 }
-.formBox .btns {
+
+.btns {
   margin-top: 50px;
   display: flex;
   justify-content: center;
 }
-.formBox .btns button {
+.btns button,
+.btns a {
+  font-family: "Noto Sans KR";
+  font-size: 16px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   height: 50px;
   padding: 0 20px;
   background-color: #111;
